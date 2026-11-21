@@ -1,0 +1,15 @@
+{
+  "name": "framecraft-portrait-composer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:background-remover": "esbuild background-removal-entry.js --bundle --format=esm --platform=browser --outfile=dist/vendor/background-removal.mjs"
+  },
+  "dependencies": {
+    "@imgly/background-removal": "1.7.0",
+    "onnxruntime-web": "1.21.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.0"
+  }
+}

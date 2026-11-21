@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Create a print-ready 6 by 8 inch portrait with automatic background removal." />
+    <meta name="description" content="Create a portrait composition over a full Hyderabad landscape background." />
     <title>FrameCraft — Portrait Composer</title>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
     <link rel="stylesheet" href="styles.css" />
@@ -14,11 +14,11 @@
         <a class="brand" href="#top" aria-label="FrameCraft home"><span class="brand-mark">F</span><span>FrameCraft</span></a>
         <p class="eyebrow">PRINT-READY PORTRAITS</p>
         <h1>Your portrait,<br /><em>beautifully framed.</em></h1>
-        <p class="lede">Upload a photo and we’ll remove the background in your browser, blend your subject into the Hyderabad skyline, and prepare a 6 × 8 inch print.</p>
+        <p class="lede">Upload a portrait, remove its white backdrop, then place it over the Hyderabad artwork. The complete background stays visible, in its original proportions.</p>
         <div class="facts">
-          <div><strong>6 × 8</strong><span>inch print ratio</span></div>
-          <div><strong>300 PPI</strong><span>1800 × 2400 pixels</span></div>
-          <div><strong>Private</strong><span>processed on-device</span></div>
+          <div><strong>Original</strong><span>background size</span></div>
+          <div><strong>Full image</strong><span>no crop or stretch</span></div>
+          <div><strong>White only</strong><span>background cleanup</span></div>
         </div>
       </section>
 
@@ -28,22 +28,22 @@
             <p class="eyebrow">YOUR COMPOSITION</p>
             <h2>Make it yours</h2>
           </div>
-          <span class="dimension-badge">6 × 8 in <i></i> 300 PPI</span>
+          <span class="dimension-badge" id="dimensionBadge">Original image <i></i> Loading…</span>
         </div>
 
         <div class="composer-grid">
           <div class="controls-panel">
             <label class="upload-card" for="photoInput" id="uploadCard">
               <input id="photoInput" type="file" accept="image/png,image/jpeg,image/webp" />
-              <span class="upload-icon">+</span>
-              <strong>Upload your portrait</strong>
-              <small>JPG, PNG or WebP · best with one clear subject</small>
+              <span class="upload-icon" aria-hidden="true">↑</span>
+              <strong id="uploadTitle">Choose a portrait</strong>
+              <small id="uploadHelp">JPG, PNG or WebP · one clear subject works best</small>
             </label>
 
-            <div class="process-status" id="status" aria-live="polite"><span class="status-orb"></span><span>Ready when you are</span></div>
+            <div class="process-status" id="status" aria-live="polite"><span class="status-orb"></span><span>Step 1 of 3 · Choose a portrait to begin</span></div>
 
             <div class="adjustments" id="adjustments" aria-disabled="true">
-              <div class="section-label"><span>Adjust portrait</span><button id="resetButton" type="button">Reset</button></div>
+              <div class="section-label"><span>2. Position your portrait</span><button id="resetButton" type="button" aria-label="Reset portrait position">Reset position</button></div>
               <label class="range-row"><span>Size</span><input id="scale" type="range" min="35" max="130" value="75" /></label>
               <label class="range-row"><span>Move left / right</span><input id="horizontal" type="range" min="10" max="90" value="50" /></label>
               <label class="range-row"><span>Move up / down</span><input id="vertical" type="range" min="15" max="90" value="62" /></label>
@@ -51,16 +51,16 @@
               <p class="hint">Tip: drag the portrait directly on the preview to place it.</p>
             </div>
 
-            <button class="download-button" id="downloadButton" type="button" disabled><span>Download print PNG</span><small>1800 × 2400 px</small></button>
+            <button class="download-button" id="downloadButton" type="button" disabled><span>3. Download PNG</span><small id="downloadDimensions">Original size</small></button>
           </div>
 
           <div class="canvas-stage">
             <div class="canvas-wrap" id="canvasWrap">
-              <canvas id="previewCanvas" width="900" height="1200" aria-label="Your final portrait preview"></canvas>
-              <div class="empty-state" id="emptyState"><div class="empty-emblem">✦</div><strong>Your finished portrait will appear here</strong><span>Start by uploading a photo</span></div>
+              <canvas id="previewCanvas" width="1600" height="900" aria-label="Your final portrait preview"></canvas>
+              <div class="empty-state" id="emptyState"><div class="empty-emblem">✦</div><strong>Your portrait will appear here</strong><span>Choose an image, then drag it into place</span></div>
               <div class="drag-note" id="dragNote">Drag to move</div>
             </div>
-            <p class="preview-note"><span></span> Preview shows the exact 3:4 crop that will be downloaded.</p>
+            <p class="preview-note"><span></span> Full background preview · no crop or stretch</p>
           </div>
         </div>
       </section>

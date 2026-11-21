@@ -8,8 +8,12 @@ const adjustments = document.querySelector('#adjustments');
 const emptyState = document.querySelector('#emptyState');
 const downloadButton = document.querySelector('#downloadButton');
 const dragNote = document.querySelector('#dragNote');
+const canvasWrap = document.querySelector('#canvasWrap');
+const dimensionBadge = document.querySelector('#dimensionBadge');
+const downloadDimensions = document.querySelector('#downloadDimensions');
+const uploadTitle = document.querySelector('#uploadTitle');
+const uploadHelp = document.querySelector('#uploadHelp');
 const bg = new Image();
-bg.src = 'assets/hyderabad-scene.svg';
 
 const controls = {
   scale: document.querySelector('#scale'), horizontal: document.querySelector('#horizontal'),
@@ -21,9 +25,43 @@ function setStatus(message, mode = 'idle') {
   status.lastElementChild.textContent = message;
   statusOrb.className = `status-orb ${mode === 'working' ? 'working' : mode === 'done' ? 'done' : ''}`;
 }
+function setCanvasToBackgroundSize() {
+  if (!bg.naturalWidth || !bg.naturalHeight) return;
+  // The drawing buffer and exported PNG match the supplied background exactly.
+  // CSS only scales the on-screen preview, never the artwork itself.
+  canvas.width = bg.naturalWidth;
+  canvas.height = bg.naturalHeight;
+  canvasWrap.style.aspectRatio = `${bg.naturalWidth} / ${bg.naturalHeight}`;
+  const dimensions = `${bg.naturalWidth.toLocaleString()} × ${bg.naturalHeight.toLocaleString()} px`;
+  dimensionBadge.innerHTML = `Original image <i></i> ${dimensions}`;
+  downloadDimensions.textContent = dimensions;
+}
 function loadImage(src) { return new Promise((resolve, reject) => { const image = new Image(); image.onload = () => resolve(image); image.onerror = reject; image.src = src; }); }
+function removeOnlyWhite(image) {
+  const work = document.createElement('canvas');
+  work.width = image.naturalWidth; work.height = image.naturalHeight;
+  const workCtx = work.getContext('2d', { willReadFrequently: true });
+  workCtx.drawImage(image, 0, 0);
+  const pixels = workCtx.getImageData(0, 0, work.width, work.height);
+  const data = pixels.data;
+
+  // Fade only low-saturation near-white pixels. This preserves coloured ink,
+  // clothing and skin tones instead of applying a full portrait cutout.
+  for (let i = 0; i < data.length; i += 4) {
+    const red = data[i], green = data[i + 1], blue = data[i + 2];
+    const lightness = Math.min(red, green, blue);
+    const colourSpread = Math.max(red, green, blue) - lightness;
+    const whiteAmount = Math.max(0, Math.min(1, (lightness - 214) / 34));
+    const neutrality = Math.max(0, Math.min(1, 1 - colourSpread / 42));
+    const removeAmount = whiteAmount * neutrality;
+    data[i + 3] = Math.round(data[i + 3] * (1 - removeAmount));
+  }
+  workCtx.putImageData(pixels, 0, 0);
+  return loadImage(work.toDataURL('image/png'));
+}
 function render() {
-  if (!bg.complete) return;
+  // `complete` is also true for a failed image, so check its real dimensions.
+  if (!bg.complete || !bg.naturalWidth) return;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
   if (!state.subject) return;
@@ -48,41 +86,48 @@ async function processPhoto(file) {
   if (!file) return;
   if (!file.type.startsWith('image/')) { setStatus('Please choose a JPG, PNG or WebP photo'); return; }
   emptyState.classList.add('hidden'); uploadCard.classList.add('is-uploaded');
-  uploadCard.querySelector('strong').textContent = file.name.length > 26 ? `${file.name.slice(0, 23)}…` : file.name;
-  uploadCard.querySelector('small').textContent = 'New photo? Click to replace it';
-  setStatus('Preparing your photo…', 'working');
+  uploadTitle.textContent = file.name.length > 26 ? `${file.name.slice(0, 23)}…` : file.name;
+  uploadHelp.textContent = 'Click here to choose a different photo';
+  setStatus('Step 1 of 3 · Preparing your portrait…', 'working');
+  let localUrl;
   try {
-    // Dynamic import keeps the page light until a portrait is actually selected.
-    const { default: removeBackground } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/+esm');
-    setStatus('Removing background — first use may take a minute…', 'working');
-    const result = await removeBackground(file, { model: 'small', progress: (_key, current, total) => {
-      if (total) setStatus(`Downloading portrait tools… ${Math.round(current / total * 100)}%`, 'working');
-    }});
-    const objectUrl = URL.createObjectURL(result);
-    state.subject = await loadImage(objectUrl);
+    localUrl = URL.createObjectURL(file);
+    const original = await loadImage(localUrl);
+    setStatus('Step 1 of 3 · Removing the white background…', 'working');
+    state.subject = await removeOnlyWhite(original);
     reset();
     adjustments.classList.add('active'); adjustments.setAttribute('aria-disabled', 'false');
     downloadButton.disabled = false;
-    setStatus('Background removed — drag your portrait to position it.', 'done');
+    canvasWrap.classList.add('has-subject');
+    setStatus('Step 2 of 3 · Drag your portrait or use the sliders to place it.', 'done');
     showDragNote();
   } catch (error) {
     console.error(error);
-    setStatus('Could not remove the background. Check your connection and try again.');
+    setStatus('Could not process this image. Please try a JPG, PNG or WebP file.');
     emptyState.classList.remove('hidden');
+  } finally {
+    if (localUrl) URL.revokeObjectURL(localUrl);
   }
 }
 input.addEventListener('change', event => processPhoto(event.target.files[0]));
 function canvasPoint(event) { const box = canvas.getBoundingClientRect(); return { x: (event.clientX - box.left) / box.width * 100, y: (event.clientY - box.top) / box.height * 100 }; }
 function showDragNote() { dragNote.classList.add('show'); setTimeout(() => dragNote.classList.remove('show'), 2600); }
-canvas.addEventListener('pointerdown', event => { if (!state.subject) return; state.dragging = true; state.dragStart = canvasPoint(event); canvas.setPointerCapture(event.pointerId); });
+canvas.addEventListener('pointerdown', event => { if (!state.subject) return; state.dragging = true; canvasWrap.classList.add('is-dragging'); state.dragStart = canvasPoint(event); canvas.setPointerCapture(event.pointerId); });
 canvas.addEventListener('pointermove', event => { if (!state.dragging) return; const point = canvasPoint(event); state.x = Math.max(0, Math.min(100, state.x + point.x - state.dragStart.x)); state.y = Math.max(0, Math.min(100, state.y + point.y - state.dragStart.y)); state.dragStart = point; syncControls(); render(); });
-canvas.addEventListener('pointerup', () => { state.dragging = false; });
+canvas.addEventListener('pointerup', () => { state.dragging = false; canvasWrap.classList.remove('is-dragging'); });
+canvas.addEventListener('pointercancel', () => { state.dragging = false; canvasWrap.classList.remove('is-dragging'); });
 downloadButton.addEventListener('click', () => {
   if (!state.subject) return;
-  const output = document.createElement('canvas'); output.width = 1800; output.height = 2400;
-  const previous = { width: canvas.width, height: canvas.height }; canvas.width = output.width; canvas.height = output.height; render();
-  output.getContext('2d').drawImage(canvas, 0, 0); canvas.width = previous.width; canvas.height = previous.height; render();
-  const link = document.createElement('a'); link.download = 'framecraft-portrait-6x8.png'; link.href = output.toDataURL('image/png'); link.click();
-  setStatus('Your print-ready PNG has been downloaded.', 'done');
+  canvas.toBlob(blob => {
+    if (!blob) return;
+    const link = document.createElement('a');
+    const fileUrl = URL.createObjectURL(blob);
+    link.download = 'framecraft-portrait.png';
+    link.href = fileUrl;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(fileUrl), 1000);
+    setStatus('Step 3 of 3 · Your original-size PNG is ready.', 'done');
+  }, 'image/png');
 });
-bg.onload = render;
+bg.onload = () => { setCanvasToBackgroundSize(); render(); };
+bg.src = 'assets/hyderabad-background-original.png';
