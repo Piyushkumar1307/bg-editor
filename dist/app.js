@@ -83,6 +83,12 @@ function makePrintCanvas(size) {
   printCtx.drawImage(canvas, Math.round((printCanvas.width - drawWidth) / 2), Math.round((printCanvas.height - drawHeight) / 2), drawWidth, drawHeight);
   return printCanvas;
 }
+function getArtworkLayout(size) {
+  const artworkRatio = canvas.width / canvas.height;
+  const width = Math.min(size.width, size.height * artworkRatio);
+  const height = width / artworkRatio;
+  return { width, height };
+}
 function canvasToBlob(sourceCanvas, type = 'image/png', quality) {
   return new Promise(resolve => sourceCanvas.toBlob(resolve, type, quality));
 }
@@ -245,13 +251,15 @@ printButton.addEventListener('click', async () => {
   if (!printWindow) { setStatus('Your browser blocked the print window. Please allow pop-ups and try again.'); return; }
   setExportBusy(true, 'Step 3 of 3 · Preparing the print dialog…');
   try {
-    const printCanvas = makePrintCanvas(size);
-    const imageUrl = printCanvas.toDataURL('image/jpeg', 0.95);
+    // Keep the paper whitespace in the print document itself. Some browser
+    // print previews reflow a raster print sheet onto A4; an explicit sheet
+    // and centered artwork keeps the top and bottom borders intact there too.
+    const imageUrl = canvas.toDataURL('image/jpeg', 0.95);
     const width = formatInches(size.width);
     const height = formatInches(size.height);
-    printWindow.document.write(`<!doctype html><html><head><title>FrameCraft print</title><style>@page { size: ${width}in ${height}in; margin: 0; } html, body { width: ${width}in; height: ${height}in; margin: 0; background: #fff; } img { display: block; width: 100%; height: 100%; }</style></head><body><img src="${imageUrl}" alt="FrameCraft composition" /></body></html>`);
+    const artwork = getArtworkLayout(size);
+    printWindow.document.write(`<!doctype html><html><head><title>FrameCraft print</title><style>@page { size: ${width}in ${height}in; margin: 0 !important; } * { box-sizing: border-box; } html, body { width: ${width}in; height: ${height}in; margin: 0; padding: 0; background: #fff; } .print-sheet { display: flex; align-items: center; justify-content: center; width: ${width}in; height: ${height}in; overflow: hidden; background: #fff; } .artwork { display: block; width: ${formatInches(artwork.width)}in; height: ${formatInches(artwork.height)}in; } @media print { html, body, .print-sheet { break-after: avoid-page; page-break-after: avoid; } }</style></head><body><main class="print-sheet"><img class="artwork" src="${imageUrl}" alt="FrameCraft composition" /></main><script>const image = document.querySelector('.artwork'); const startPrint = () => { window.focus(); window.print(); }; if (image.complete) startPrint(); else image.addEventListener('load', startPrint, { once: true });</script></body></html>`);
     printWindow.document.close();
-    printWindow.onload = () => { printWindow.focus(); printWindow.print(); };
     setStatus(`Step 3 of 3 · Print dialog ready for ${width} × ${height} in paper.`, 'done');
   } catch (error) {
     console.error(error);
