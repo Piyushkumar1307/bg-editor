@@ -51,7 +51,24 @@
               <p class="hint">Tip: drag the portrait directly on the preview to place it.</p>
             </div>
 
-            <button class="download-button" id="downloadButton" type="button" disabled><span>3. Download PNG</span><small id="downloadDimensions">Original size</small></button>
+            <div class="print-settings" id="printSettings" aria-disabled="true">
+              <div class="print-settings-heading">
+                <span>3. Set print size</span>
+                <span class="print-unit">INCHES</span>
+              </div>
+              <div class="print-dimensions">
+                <label><span>Width</span><input id="printWidth" type="number" min="3" max="24" step="0.1" value="8" inputmode="decimal" /><b>in</b></label>
+                <span class="dimension-times" aria-hidden="true">×</span>
+                <label><span>Height</span><input id="printHeight" type="number" min="3" max="24" step="0.1" value="6" inputmode="decimal" /><b>in</b></label>
+              </div>
+              <p id="printDetails">8 × 6 in · 200 PPI · full artwork, no crop</p>
+            </div>
+
+            <div class="print-actions">
+              <button class="download-button primary-action" id="pdfButton" type="button" disabled><span>Save print PDF</span><small id="pdfDimensions">8 × 6 in</small></button>
+              <button class="print-button" id="printButton" type="button" disabled><span>Print</span><small>opens print dialog</small></button>
+            </div>
+            <button class="download-button png-action" id="downloadButton" type="button" disabled><span>Download PNG</span><small id="downloadDimensions">Original size</small></button>
           </div>
 
           <div class="canvas-stage">
